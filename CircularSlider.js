@@ -89,14 +89,29 @@ export default class CircularSlider extends PureComponent {
 
   /**
    * 极坐标转笛卡尔坐标
-   * @param {number} radian - 弧度表示的极角
+   * @param {number} radian 
    */
   polarToCartesian(radian) {
     const { radius } = this.props
-    const distance = radius + this._getExtraSize() / 2 // 圆心距离坐标轴的距离
+    const distance = radius + this._getExtraSize() / 2 
     const x = distance + radius * Math.sin(radian)
     const y = distance + radius * Math.cos(radian)
     return { x, y }
+  }
+
+  polarToCartesianMax(radian) {
+    const { radius, maxToSlide } = this.props;
+    let distance
+    if (Number.isInteger(maxToSlide) && maxToSlide % 5 == 0) {
+      distance = (radius) + this._getExtraSize() / 2
+    }
+    else {
+      distance = (radius - 5) + this._getExtraSize()
+    }
+    const x = distance + radius * Math.sin(radian)
+    const y = distance + radius * Math.cos(radian)
+    return { x, y }
+
   }
 
   /**
@@ -106,11 +121,11 @@ export default class CircularSlider extends PureComponent {
    */
   cartesianToPolar(x, y) {
     const { radius } = this.props
-    const distance = radius + this._getExtraSize() / 2 // 圆心距离坐标轴的距离
+    const distance = radius + this._getExtraSize() / 2 
     if (x === distance) {
       return y > distance ? 0 : Math.PI / 2
     }
-    const a = Math.atan((y - distance) / (x - distance)) // 计算点与圆心连线和 x 轴的夹角
+    const a = Math.atan((y - distance) / (x - distance)) 
     return (x < distance ? Math.PI * 3 / 2 : Math.PI / 2) - a
   }
 
@@ -126,8 +141,14 @@ export default class CircularSlider extends PureComponent {
    * @param {*} value 
    */
   getRadianByValue(value) {
-    const { openingRadian, min, max } = this.props
-    return (Math.PI - openingRadian) * 2 * (max - value) / (max - min) + openingRadian
+    const { openingRadian, min, max, maxToSlide } = this.props
+    if (value <= maxToSlide) {
+      return (Math.PI - openingRadian) * 2 * (max - value) / (max - min) + openingRadian
+    }
+    else if (value > maxToSlide) {
+      return (Math.PI - openingRadian) * 2 * (max - maxToSlide) / (max - min) + openingRadian
+
+    }
   }
 
   /**
@@ -161,7 +182,10 @@ export default class CircularSlider extends PureComponent {
       buttonStrokeWidth,
       style,
       contentContainerStyle,
-      children
+      children,
+      maxToSlide,
+      MaxSilder,
+      MaxSilderColor
     } = this.props
     const svgSize = radius * 2 + this._getExtraSize()
     const startRadian = 2 * Math.PI - openingRadian // 起点弧度
@@ -169,6 +193,8 @@ export default class CircularSlider extends PureComponent {
     const endPoint = this.polarToCartesian(openingRadian)
     const currentRadian = this.getCurrentRadian() // 当前弧度
     const curPoint = this.polarToCartesian(currentRadian)
+    const MaxEndPoint = this.polarToCartesianMax(this.getRadianByValue(maxToSlide))
+
 
     const contentStyle = [
       styles.content,
@@ -177,6 +203,9 @@ export default class CircularSlider extends PureComponent {
 
     return (
       <View onLayout={this._onLayout} ref={this._containerRef} style={[styles.container, style]}>
+        <View style={contentStyle}>
+          {children}
+        </View>
         <Svg width={svgSize} height={svgSize}>
           <Defs>
             <LinearGradient
@@ -203,6 +232,16 @@ export default class CircularSlider extends PureComponent {
             strokeLinecap="round"
             d={`M${startPoint.x},${startPoint.y} A ${radius},${radius},0,${startRadian - openingRadian >= Math.PI ? '1' : '0'},1,${endPoint.x},${endPoint.y}`}
           />
+          {MaxSilder &&
+            <Path
+              strokeWidth={strokeWidth}
+              stroke={MaxSilderColor}
+              fill="none"
+              strokeLinecap="round"
+              d={`M${startPoint.x},${startPoint.y} A ${radius},${radius},0,${startRadian - openingRadian >= Math.PI ? '1' : '0'},1,${MaxEndPoint.x},${MaxEndPoint.y}`}
+            />
+          }
+
           <Path
             strokeWidth={strokeWidth}
             stroke="url(#gradient)"
@@ -210,6 +249,7 @@ export default class CircularSlider extends PureComponent {
             strokeLinecap="round"
             d={`M${startPoint.x},${startPoint.y} A ${radius},${radius},0,${startRadian - currentRadian >= Math.PI ? '1' : '0'},1,${curPoint.x},${curPoint.y}`}
           />
+
           <Circle
             cx={curPoint.x}
             cy={curPoint.y}
@@ -220,9 +260,6 @@ export default class CircularSlider extends PureComponent {
             {...this._panResponder.panHandlers}
           />
         </Svg>
-        <View style={contentStyle} pointerEvents="box-none">
-          {children}
-        </View>
       </View>
     )
   }
