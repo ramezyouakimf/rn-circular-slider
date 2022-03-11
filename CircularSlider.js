@@ -46,6 +46,7 @@ export default class CircularSlider extends PureComponent {
   };
 
   _handlePanResponderMove = (e, gestureState) => {
+    this.props.onTouch(true)
     const { min, max, step, openingRadian } = this.props
     let { x, y } = this._startCartesian
     x += gestureState.dx
@@ -74,6 +75,7 @@ export default class CircularSlider extends PureComponent {
 
 
   _handlePanResponderEnd = (e, gestureState) => {
+    this.props.onTouch(false)
     if (this.props.disabled) {
       return;
     }
